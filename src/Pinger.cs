@@ -34,7 +34,7 @@ namespace Pinger
       {
          var ping = new Ping();
 
-         Log(_logFile, "Starting");
+         Log("Starting");
 
          while (true)
          {
@@ -42,7 +42,14 @@ namespace Pinger
             {
                var pingReply = ping.Send("www.google.com");
 
-               Log(_logFile, "Ping completed\t" + pingReply.RoundtripTime);
+               if (pingReply.Status == IPStatus.Success)
+               {
+                  LogPingResult(true, pingReply.RoundtripTime.ToString());
+               }
+               else
+               {
+                  LogPingResult(false, pingReply.Status.ToString());
+               }
             }
             catch (PingException pingException)
             {
@@ -50,35 +57,42 @@ namespace Pinger
 
                if (inner != null)
                {
-                  Log(_logFile, "Ping failed\t" + inner.Message);
+                  LogPingResult(false, inner.Message);
                }
                else
                {
-                  Log(_logFile, "Ping failed\t" + pingException.Message);
+                  LogPingResult(false, pingException.Message);
                }
             }
             catch (Exception e)
             {
-               Log(_logFile, "Ping failed\t" + e.Message);
+               LogPingResult(false, e.Message);
             }
 
             Thread.Sleep(TimeSpan.FromSeconds(1));
 
             if (_cts.Token.IsCancellationRequested)
             {
-               Log(_logFile, "Stopping");
+               Log("Stopping");
                return;
             }
 
          }
       }
 
-      private static void Log(string logFile, string message)
+      private void LogPingResult(bool success, string details)
+      {
+         string message = string.Format("{0}\t{1}", success ? "Success" : "Failure", details);
+
+         Log(message);
+      }
+
+      private void Log(string message)
       {
          string completeMessage = String.Format("{0}\t{1}\r\n",
             DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), message);
 
-         File.AppendAllText(logFile, completeMessage);
+         File.AppendAllText(_logFile, completeMessage);
       }
 
 
